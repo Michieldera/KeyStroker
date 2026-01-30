@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoKey Web - Keyboard Automation</title>
+    <title>KeyStroker - Keyboard Automation</title>
     <link rel="stylesheet" href="/static/style.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- SortableJS via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
@@ -14,7 +18,7 @@
         <header class="app-header">
             <div class="header-row">
                 <div class="header-title">
-                    <h1>AutoKey Web</h1>
+                    <h1>KeyStroker</h1>
                     <p class="subtitle">Visual Keyboard Automation Builder</p>
                 </div>
                 <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
@@ -90,27 +94,27 @@
         <!-- Action Buttons -->
         <section class="actions-section">
             <button class="btn btn-primary" id="runBtn">
-                <span class="btn-icon">&#9658;</span> Run Sequence
+                <i data-lucide="play" class="btn-icon"></i> Run Sequence
             </button>
             <button class="btn btn-secondary" id="savePatternBtn">
-                <span class="btn-icon">&#128190;</span> Save Pattern
+                <i data-lucide="save" class="btn-icon"></i> Save Pattern
             </button>
             <button class="btn btn-secondary" id="loadJsonBtn">
-                <span class="btn-icon">&#128194;</span> Load JSON
+                <i data-lucide="folder-open" class="btn-icon"></i> Load JSON
             </button>
             <button class="btn btn-secondary" id="exportJsonBtn">
-                <span class="btn-icon">&#128228;</span> Export JSON
+                <i data-lucide="download" class="btn-icon"></i> Export JSON
             </button>
             <div class="btn-group">
                 <button class="btn btn-outline" id="undoBtn" disabled title="Nothing to undo">
-                    <span class="btn-icon">&#8630;</span> Undo
+                    <i data-lucide="undo-2" class="btn-icon"></i> Undo
                 </button>
                 <button class="btn btn-outline" id="redoBtn" disabled title="Nothing to redo">
-                    <span class="btn-icon">&#8631;</span> Redo
+                    <i data-lucide="redo-2" class="btn-icon"></i> Redo
                 </button>
             </div>
             <button class="btn btn-danger" id="clearSequenceBtn">
-                <span class="btn-icon">&#128465;</span> Clear All
+                <i data-lucide="trash-2" class="btn-icon"></i> Clear All
             </button>
             <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
         </section>
@@ -126,7 +130,7 @@
                     <!-- Type Text -->
                     <div class="toolbox-item" data-action="type">
                         <div class="item-header">
-                            <span class="item-icon">&#9000;</span>
+                            <i data-lucide="text-cursor-input" class="item-icon"></i>
                             <span class="item-title">Type Text</span>
                         </div>
                         <div class="item-fields">
@@ -142,7 +146,7 @@
                     <!-- Type Number Range -->
                     <div class="toolbox-item" data-action="type_range">
                         <div class="item-header">
-                            <span class="item-icon">&#128290;</span>
+                            <i data-lucide="hash" class="item-icon"></i>
                             <span class="item-title">Type Number Range</span>
                         </div>
                         <div class="item-fields">
@@ -170,7 +174,7 @@
                     <!-- Press Key -->
                     <div class="toolbox-item" data-action="key">
                         <div class="item-header">
-                            <span class="item-icon">&#127929;</span>
+                            <i data-lucide="keyboard" class="item-icon"></i>
                             <span class="item-title">Press Key</span>
                         </div>
                         <div class="item-fields">
@@ -227,7 +231,7 @@
                     <!-- Hotkey Combo -->
                     <div class="toolbox-item" data-action="hotkey">
                         <div class="item-header">
-                            <span class="item-icon">&#9889;</span>
+                            <i data-lucide="zap" class="item-icon"></i>
                             <span class="item-title">Hotkey Combo</span>
                         </div>
                         <div class="item-fields">
@@ -328,7 +332,7 @@
                     <!-- Wait -->
                     <div class="toolbox-item" data-action="wait">
                         <div class="item-header">
-                            <span class="item-icon">&#9201;</span>
+                            <i data-lucide="clock" class="item-icon"></i>
                             <span class="item-title">Wait</span>
                         </div>
                         <div class="item-fields">
@@ -343,7 +347,7 @@
                     <!-- Mouse Click -->
                     <div class="toolbox-item" data-action="click">
                         <div class="item-header">
-                            <span class="item-icon">&#128433;</span>
+                            <i data-lucide="mouse-pointer-click" class="item-icon"></i>
                             <span class="item-title">Mouse Click</span>
                         </div>
                         <div class="item-fields">
@@ -380,7 +384,7 @@
                     <!-- Move Mouse -->
                     <div class="toolbox-item" data-action="move_mouse">
                         <div class="item-header">
-                            <span class="item-icon">&#10146;</span>
+                            <i data-lucide="move" class="item-icon"></i>
                             <span class="item-title">Move Mouse</span>
                         </div>
                         <div class="item-fields">
@@ -402,7 +406,7 @@
                     <!-- Repeat Block -->
                     <div class="toolbox-item repeat-block-item" data-action="repeat">
                         <div class="item-header">
-                            <span class="item-icon">&#128257;</span>
+                            <i data-lucide="repeat" class="item-icon"></i>
                             <span class="item-title">Repeat Block</span>
                         </div>
                         <div class="item-fields">
@@ -622,6 +626,16 @@
         <span class="toast-message" id="toastMessage"></span>
     </div>
 
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="/static/script.js"></script>
+    <script>
+        // Initialize Lucide icons after DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

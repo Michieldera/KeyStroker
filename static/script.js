@@ -1,5 +1,5 @@
 /**
- * AutoKey Web - Frontend Logic
+ * KeyStroker - Frontend Logic
  * Handles drag-and-drop, pattern management, and sequence execution
  */
 

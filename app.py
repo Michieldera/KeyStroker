@@ -1,5 +1,5 @@
 """
-AutoKey Web - Flask Backend
+KeyStroker - Flask Backend
 A browser-based keyboard automation tool.
 """
 
@@ -13,10 +13,19 @@ import queue
 import threading
 
 import pyautogui
-import pygetwindow as gw
+
+# Import cross-platform window manager
+from window_manager import get_all_windows, activate_window, window_exists, get_platform
 
 # Enable failsafe - move mouse to top-left corner to abort
 pyautogui.FAILSAFE = True
+
+# Import pyperclip for clipboard-based typing (better keyboard layout support)
+try:
+    import pyperclip
+    PYPERCLIP_AVAILABLE = True
+except ImportError:
+    PYPERCLIP_AVAILABLE = False
 
 app = Flask(__name__)
 
@@ -35,6 +44,58 @@ execution_state = {
     "total_steps": 0,
     "progress_queue": None,
 }
+
+
+def type_text_safe(text, interval=0):
+    """
+    Type text using clipboard paste method for non-QWERTY keyboard compatibility.
+    This works correctly with AZERTY, QWERTZ, and other keyboard layouts.
+    Falls back to direct typing if clipboard method fails.
+    
+    Args:
+        text: The text to type
+        interval: Delay between characters (only used in fallback mode)
+    """
+    if not text:
+        return
+    
+    platform = get_platform()
+    
+    # Try clipboard method first (works with any keyboard layout)
+    if PYPERCLIP_AVAILABLE:
+        try:
+            # Save current clipboard content
+            try:
+                old_clipboard = pyperclip.paste()
+            except Exception:
+                old_clipboard = ""
+            
+            # Copy text to clipboard
+            pyperclip.copy(text)
+            time.sleep(0.05)  # Small delay for clipboard to update
+            
+            # Paste using keyboard shortcut
+            if platform == 'macos':
+                pyautogui.hotkey('command', 'v')
+            else:
+                pyautogui.hotkey('ctrl', 'v')
+            
+            time.sleep(0.05)  # Small delay for paste to complete
+            
+            # Restore original clipboard content
+            try:
+                if old_clipboard:
+                    pyperclip.copy(old_clipboard)
+            except Exception:
+                pass
+            
+            return  # Success - exit function
+            
+        except Exception:
+            pass  # Fall through to direct typing
+    
+    # Fallback: direct typing (may not work correctly with non-QWERTY keyboards)
+    pyautogui.write(text, interval=interval)
 
 
 def count_steps(sequence):
@@ -88,20 +149,16 @@ def get_mouse_position():
 
 
 @app.route("/windows", methods=["GET"])
-def get_windows():
-    """Return list of all visible window titles."""
+def get_windows_list():
+    """Return list of all visible windows/applications."""
     try:
-        windows = gw.getAllTitles()
-        # Filter out empty titles
-        windows = [w for w in windows if w.strip()]
-        # Remove duplicates while preserving order
-        seen = set()
-        unique_windows = []
-        for w in windows:
-            if w not in seen:
-                seen.add(w)
-                unique_windows.append(w)
-        return jsonify({"windows": unique_windows})
+        windows = get_all_windows()
+        platform = get_platform()
+        return jsonify({
+            "windows": windows,
+            "platform": platform,
+            "note": "Application names" if platform == "macos" else "Window titles"
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -159,7 +216,8 @@ def execute_step(step, loop_index):
         interval = float(step.get("interval", 0))
         # Replace {i} with current loop index
         text = text.replace("{i}", str(loop_index))
-        pyautogui.write(text, interval=interval)
+        # Use clipboard-based typing for keyboard layout compatibility (AZERTY, etc.)
+        type_text_safe(text, interval=interval)
 
     elif action == "type_range":
         execution_state["current_step"] += 1
@@ -180,7 +238,8 @@ def execute_step(step, loop_index):
         else:
             number_str = str(current_number)
 
-        pyautogui.write(number_str, interval=interval)
+        # Use clipboard-based typing for keyboard layout compatibility (AZERTY, etc.)
+        type_text_safe(number_str, interval=interval)
 
     elif action == "key":
         execution_state["current_step"] += 1
@@ -262,18 +321,14 @@ def run_sequence():
         # Step 1: Focus target window (if auto mode)
         if target_mode == "auto" and target_window:
             try:
-                windows = gw.getWindowsWithTitle(target_window)
-                if windows:
-                    target = windows[0]
-                    # Restore if minimized
-                    if target.isMinimized:
-                        target.restore()
-                    try:
-                        target.activate()
-                    except Exception as activate_error:
-                        # Ignore "Error code 0" which actually means success on Windows
-                        if "Error code from Windows: 0" not in str(activate_error):
-                            raise
+                # Use cross-platform window manager
+                if window_exists(target_window):
+                    success = activate_window(target_window)
+                    if not success:
+                        execution_state["running"] = False
+                        return jsonify(
+                            {"error": f"Failed to activate '{target_window}'. Try selecting it manually."}
+                        ), 400
                     time.sleep(0.5)  # Brief pause for window to come to front
                 else:
                     execution_state["running"] = False
@@ -549,9 +604,10 @@ def duplicate_pattern(name):
 
 if __name__ == "__main__":
     print("\n" + "=" * 50)
-    print("  AutoKey Web - Keyboard Automation Tool")
+    print("  KeyStroker - Keyboard Automation Tool")
     print("=" * 50)
-    print("\n  Open your browser and go to: http://127.0.0.1:5000")
+    print(f"\n  Platform: {get_platform()}")
+    print("\n  Open your browser and go to: http://127.0.0.1:5001")
     print("\n  SAFETY: Move mouse to top-left corner to stop!")
     print("=" * 50 + "\n")
-    app.run(debug=True, host="127.0.0.1", port=5000)
+    app.run(debug=True, host="127.0.0.1", port=5001)
