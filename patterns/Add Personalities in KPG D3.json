@@ -1,0 +1,30 @@
+{
+  "name": "Add Personalities in KPG D3",
+  "description": "",
+  "created_at": "2026-01-30T12:04:00.121089Z",
+  "updated_at": "2026-01-30T12:04:00.121089Z",
+  "target_window": "KPG-D3",
+  "target_mode": "auto",
+  "start_delay": 3,
+  "loop_count": 1,
+  "sequence": [
+    {
+      "action": "click",
+      "button": "left",
+      "clicks": 1,
+      "x": 749,
+      "y": 207
+    },
+    {
+      "action": "repeat",
+      "times": 105,
+      "delay": 0.1,
+      "children": [
+        {
+          "action": "key",
+          "value": "enter"
+        }
+      ]
+    }
+  ]
+}

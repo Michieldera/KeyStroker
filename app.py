@@ -8,7 +8,9 @@ import json
 import time
 import re
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response
+import queue
+import threading
 
 import pyautogui
 import pygetwindow as gw
@@ -23,6 +25,37 @@ PATTERNS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pattern
 
 # Ensure patterns directory exists
 os.makedirs(PATTERNS_DIR, exist_ok=True)
+
+# Global execution state for progress reporting
+execution_state = {
+    "running": False,
+    "current_loop": 0,
+    "total_loops": 0,
+    "current_step": 0,
+    "total_steps": 0,
+    "progress_queue": None,
+}
+
+
+def count_steps(sequence):
+    """Count total steps including nested repeat block children."""
+    total = 0
+    for step in sequence:
+        if step.get("action") == "repeat":
+            times = int(step.get("times", 1))
+            children = step.get("children", [])
+            # Count each repetition of children
+            total += count_steps(children) * times
+        else:
+            total += 1
+    return total
+
+
+def count_total_steps(startup_sequence, main_sequence, loop_count):
+    """Count total steps including startup and all loop iterations."""
+    startup_steps = count_steps(startup_sequence)
+    main_steps = count_steps(main_sequence) * loop_count
+    return startup_steps + main_steps
 
 
 def sanitize_filename(name):
@@ -44,6 +77,16 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/mouse-position", methods=["GET"])
+def get_mouse_position():
+    """Return current mouse cursor position."""
+    try:
+        x, y = pyautogui.position()
+        return jsonify({"x": x, "y": y})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/windows", methods=["GET"])
 def get_windows():
     """Return list of all visible window titles."""
@@ -63,9 +106,137 @@ def get_windows():
         return jsonify({"error": str(e)}), 500
 
 
+def report_progress():
+    """Send progress update to SSE clients."""
+    if execution_state["progress_queue"]:
+        try:
+            execution_state["progress_queue"].put_nowait(
+                {
+                    "type": "progress",
+                    "current_loop": execution_state["current_loop"],
+                    "total_loops": execution_state["total_loops"],
+                    "current_step": execution_state["current_step"],
+                    "total_steps": execution_state["total_steps"],
+                }
+            )
+        except queue.Full:
+            pass
+
+
+def execute_step(step, loop_index):
+    """
+    Execute a single step, handling repeat blocks recursively.
+
+    Args:
+        step: The step dictionary containing action and parameters
+        loop_index: The current loop iteration (1-based) for {i} replacement
+    """
+    action = step.get("action")
+
+    if action == "repeat":
+        # Repeat block - execute children multiple times
+        times = int(step.get("times", 1))
+        delay = float(step.get("delay", 0))
+        children = step.get("children", [])
+
+        # Skip if times is 0 or no children
+        if times <= 0 or not children:
+            return
+
+        for r in range(times):
+            # Execute all children in order
+            for child in children:
+                execute_step(child, loop_index)
+
+            # Delay between repetitions (not after the last one)
+            if delay > 0 and r < times - 1:
+                time.sleep(delay)
+
+    elif action == "type":
+        execution_state["current_step"] += 1
+        report_progress()
+        text = step.get("value", "")
+        interval = float(step.get("interval", 0))
+        # Replace {i} with current loop index
+        text = text.replace("{i}", str(loop_index))
+        pyautogui.write(text, interval=interval)
+
+    elif action == "type_range":
+        execution_state["current_step"] += 1
+        report_progress()
+        start = int(step.get("start", 0))
+        end = int(step.get("end", 0))
+        interval = float(step.get("interval", 0))
+        # Calculate current number with wrap-around
+        range_length = end - start + 1
+        current_number = start + ((loop_index - 1) % range_length)
+
+        # Apply zero-padding if enabled
+        use_padding = step.get("use_padding", False)
+        min_digits = int(step.get("min_digits", 1))
+
+        if use_padding and min_digits > 1:
+            number_str = str(current_number).zfill(min_digits)
+        else:
+            number_str = str(current_number)
+
+        pyautogui.write(number_str, interval=interval)
+
+    elif action == "key":
+        execution_state["current_step"] += 1
+        report_progress()
+        key = step.get("value", "")
+        if key:
+            pyautogui.press(key)
+
+    elif action == "hotkey":
+        execution_state["current_step"] += 1
+        report_progress()
+        keys = step.get("keys", [])
+        if keys:
+            pyautogui.hotkey(*keys)
+            # Explicitly release modifier keys to prevent them from getting "stuck"
+            for key in keys:
+                if key.lower() in ["shift", "ctrl", "alt", "win", "command"]:
+                    pyautogui.keyUp(key)
+            # Small delay to ensure keys are fully released
+            time.sleep(0.02)
+
+    elif action == "wait":
+        execution_state["current_step"] += 1
+        report_progress()
+        duration = float(step.get("value", 0))
+        time.sleep(duration)
+
+    elif action == "click":
+        execution_state["current_step"] += 1
+        report_progress()
+        button = step.get("button", "left")
+        clicks = int(step.get("clicks", 1))
+        x = step.get("x")
+        y = step.get("y")
+
+        if x is not None and y is not None:
+            # Click at specific coordinates
+            pyautogui.click(x=int(x), y=int(y), button=button, clicks=clicks)
+        else:
+            # Click at current mouse position
+            pyautogui.click(button=button, clicks=clicks)
+
+    elif action == "move_mouse":
+        execution_state["current_step"] += 1
+        report_progress()
+        x = int(step.get("x", 0))
+        y = int(step.get("y", 0))
+        duration = float(step.get("duration", 0))
+        pyautogui.moveTo(x, y, duration=duration)
+
+
 @app.route("/run", methods=["POST"])
 def run_sequence():
     """Execute the automation sequence."""
+    global execution_state
+
     try:
         data = request.json
 
@@ -73,10 +244,20 @@ def run_sequence():
         target_mode = data.get("target_mode", "manual")
         start_delay = int(data.get("start_delay", 3))
         loop_count = int(data.get("loop_count", 1))
+        startup_sequence = data.get("startup_sequence", [])
         sequence = data.get("sequence", [])
 
-        if not sequence:
-            return jsonify({"error": "Sequence is empty"}), 400
+        if not sequence and not startup_sequence:
+            return jsonify({"error": "Both sequences are empty"}), 400
+
+        # Initialize progress tracking
+        total_steps = count_total_steps(startup_sequence, sequence, loop_count)
+        execution_state["running"] = True
+        execution_state["current_loop"] = 0
+        execution_state["total_loops"] = loop_count
+        execution_state["current_step"] = 0
+        execution_state["total_steps"] = total_steps
+        execution_state["progress_queue"] = queue.Queue(maxsize=100)
 
         # Step 1: Focus target window (if auto mode)
         if target_mode == "auto" and target_window:
@@ -87,54 +268,47 @@ def run_sequence():
                     # Restore if minimized
                     if target.isMinimized:
                         target.restore()
-                    target.activate()
+                    try:
+                        target.activate()
+                    except Exception as activate_error:
+                        # Ignore "Error code 0" which actually means success on Windows
+                        if "Error code from Windows: 0" not in str(activate_error):
+                            raise
                     time.sleep(0.5)  # Brief pause for window to come to front
                 else:
+                    execution_state["running"] = False
                     return jsonify(
                         {
                             "error": f"Window '{target_window}' not found. Please refresh the window list."
                         }
                     ), 400
             except Exception as e:
+                execution_state["running"] = False
                 return jsonify({"error": f"Failed to focus window: {str(e)}"}), 500
 
-        # Step 2: Start delay
+        # Step 2: Start delay (handled by frontend with countdown)
         time.sleep(start_delay)
 
-        # Step 3: Execute sequence in loops
+        # Step 3: Execute startup sequence ONCE
+        if startup_sequence:
+            execution_state["current_loop"] = 0  # 0 indicates startup phase
+            for step in startup_sequence:
+                execute_step(step, 1)  # loop_index = 1 for startup
+
+        # Step 4: Execute main sequence in loops
         for i in range(1, loop_count + 1):
+            execution_state["current_loop"] = i
             for step in sequence:
-                action = step.get("action")
+                execute_step(step, i)
 
-                if action == "type":
-                    text = step.get("value", "")
-                    interval = float(step.get("interval", 0))
-                    # Replace {i} with current loop index
-                    text = text.replace("{i}", str(i))
-                    pyautogui.write(text, interval=interval)
+        execution_state["running"] = False
 
-                elif action == "type_range":
-                    start = int(step.get("start", 0))
-                    end = int(step.get("end", 0))
-                    interval = float(step.get("interval", 0))
-                    # Calculate current number with wrap-around
-                    range_length = end - start + 1
-                    current_number = start + ((i - 1) % range_length)
-                    pyautogui.write(str(current_number), interval=interval)
-
-                elif action == "key":
-                    key = step.get("value", "")
-                    if key:
-                        pyautogui.press(key)
-
-                elif action == "hotkey":
-                    keys = step.get("keys", [])
-                    if keys:
-                        pyautogui.hotkey(*keys)
-
-                elif action == "wait":
-                    duration = float(step.get("value", 0))
-                    time.sleep(duration)
+        # Send completion message
+        if execution_state["progress_queue"]:
+            try:
+                execution_state["progress_queue"].put_nowait({"type": "complete"})
+            except queue.Full:
+                pass
 
         return jsonify(
             {
@@ -144,11 +318,39 @@ def run_sequence():
         )
 
     except pyautogui.FailSafeException:
+        execution_state["running"] = False
+        if execution_state["progress_queue"]:
+            try:
+                execution_state["progress_queue"].put_nowait({"type": "stopped"})
+            except queue.Full:
+                pass
         return jsonify(
             {"error": "Emergency stop triggered! Mouse moved to top-left corner."}
         ), 400
     except Exception as e:
+        execution_state["running"] = False
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/progress")
+def progress_stream():
+    """Server-Sent Events endpoint for execution progress."""
+
+    def generate():
+        while True:
+            if execution_state["progress_queue"]:
+                try:
+                    msg = execution_state["progress_queue"].get(timeout=1)
+                    yield f"data: {json.dumps(msg)}\n\n"
+                    if msg.get("type") in ["complete", "stopped"]:
+                        break
+                except queue.Empty:
+                    # Send heartbeat
+                    yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+            else:
+                time.sleep(0.1)
+
+    return Response(generate(), mimetype="text/event-stream")
 
 
 @app.route("/patterns", methods=["GET"])
@@ -208,6 +410,8 @@ def save_pattern():
             "target_mode": data.get("target_mode", "manual"),
             "start_delay": data.get("start_delay", 3),
             "loop_count": data.get("loop_count", 1),
+            "default_delay": data.get("default_delay", 0.1),
+            "startup_sequence": data.get("startup_sequence", []),
             "sequence": data.get("sequence", []),
         }
 
@@ -225,7 +429,7 @@ def save_pattern():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/patterns/<name>", methods=["GET"])
+@app.route("/patterns/<path:name>", methods=["GET"])
 def get_pattern(name):
     """Load a specific pattern."""
     try:
@@ -242,7 +446,7 @@ def get_pattern(name):
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/patterns/<name>", methods=["PUT"])
+@app.route("/patterns/<path:name>", methods=["PUT"])
 def update_pattern(name):
     """Update an existing pattern."""
     try:
@@ -267,6 +471,8 @@ def update_pattern(name):
             "target_mode": data.get("target_mode", "manual"),
             "start_delay": data.get("start_delay", 3),
             "loop_count": data.get("loop_count", 1),
+            "default_delay": data.get("default_delay", 0.1),
+            "startup_sequence": data.get("startup_sequence", []),
             "sequence": data.get("sequence", []),
         }
 
@@ -280,7 +486,7 @@ def update_pattern(name):
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/patterns/<name>", methods=["DELETE"])
+@app.route("/patterns/<path:name>", methods=["DELETE"])
 def delete_pattern(name):
     """Delete a pattern."""
     try:
@@ -297,7 +503,7 @@ def delete_pattern(name):
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/patterns/<name>/duplicate", methods=["POST"])
+@app.route("/patterns/<path:name>/duplicate", methods=["POST"])
 def duplicate_pattern(name):
     """Duplicate a pattern."""
     try:

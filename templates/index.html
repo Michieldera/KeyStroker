@@ -12,8 +12,16 @@
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
-            <h1>AutoKey Web</h1>
-            <p class="subtitle">Visual Keyboard Automation Builder</p>
+            <div class="header-row">
+                <div class="header-title">
+                    <h1>AutoKey Web</h1>
+                    <p class="subtitle">Visual Keyboard Automation Builder</p>
+                </div>
+                <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+                    <span class="theme-icon-light">&#9788;</span>
+                    <span class="theme-icon-dark">&#9790;</span>
+                </button>
+            </div>
         </header>
 
         <!-- Saved Patterns Section (Collapsible) -->
@@ -70,6 +78,12 @@
                     <input type="number" id="startDelay" value="3" min="0" max="60">
                     <span class="unit">seconds</span>
                 </div>
+                <div class="setting-group">
+                    <label for="defaultDelay">Default Delay:</label>
+                    <input type="number" id="defaultDelay" value="0.1" min="0" max="10" step="0.01">
+                    <span class="unit">sec</span>
+                    <button class="btn-small" id="applyDefaultDelay" title="Apply to all items in sequence">Apply All</button>
+                </div>
             </div>
         </section>
 
@@ -86,6 +100,17 @@
             </button>
             <button class="btn btn-secondary" id="exportJsonBtn">
                 <span class="btn-icon">&#128228;</span> Export JSON
+            </button>
+            <div class="btn-group">
+                <button class="btn btn-outline" id="undoBtn" disabled title="Nothing to undo">
+                    <span class="btn-icon">&#8630;</span> Undo
+                </button>
+                <button class="btn btn-outline" id="redoBtn" disabled title="Nothing to redo">
+                    <span class="btn-icon">&#8631;</span> Redo
+                </button>
+            </div>
+            <button class="btn btn-danger" id="clearSequenceBtn">
+                <span class="btn-icon">&#128465;</span> Clear All
             </button>
             <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
         </section>
@@ -131,6 +156,13 @@
                                 <label>Speed:</label>
                                 <input type="number" class="field-number" value="0" min="0" max="1" step="0.01" data-field="interval">
                                 <span class="unit">sec</span>
+                            </div>
+                            <div class="field-row">
+                                <label class="checkbox-inline">
+                                    <input type="checkbox" data-field="use_padding" class="padding-toggle">
+                                    Min digits:
+                                </label>
+                                <input type="number" class="field-number" value="2" min="1" max="10" data-field="min_digits" disabled style="width: 50px;">
                             </div>
                         </div>
                     </div>
@@ -209,60 +241,84 @@
                                 <span class="hotkey-plus">+</span>
                                 <select class="field-select hotkey-select" data-field="key2">
                                     <option value="">Select key...</option>
-                                    <option value="a">A</option>
-                                    <option value="b">B</option>
-                                    <option value="c">C</option>
-                                    <option value="d">D</option>
-                                    <option value="e">E</option>
-                                    <option value="f">F</option>
-                                    <option value="g">G</option>
-                                    <option value="h">H</option>
-                                    <option value="i">I</option>
-                                    <option value="j">J</option>
-                                    <option value="k">K</option>
-                                    <option value="l">L</option>
-                                    <option value="m">M</option>
-                                    <option value="n">N</option>
-                                    <option value="o">O</option>
-                                    <option value="p">P</option>
-                                    <option value="q">Q</option>
-                                    <option value="r">R</option>
-                                    <option value="s">S</option>
-                                    <option value="t">T</option>
-                                    <option value="u">U</option>
-                                    <option value="v">V</option>
-                                    <option value="w">W</option>
-                                    <option value="x">X</option>
-                                    <option value="y">Y</option>
-                                    <option value="z">Z</option>
-                                    <option value="0">0</option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5">5</option>
-                                    <option value="6">6</option>
-                                    <option value="7">7</option>
-                                    <option value="8">8</option>
-                                    <option value="9">9</option>
-                                    <option value="tab">Tab</option>
-                                    <option value="enter">Enter</option>
-                                    <option value="escape">Escape</option>
-                                    <option value="space">Space</option>
-                                    <option value="backspace">Backspace</option>
-                                    <option value="delete">Delete</option>
-                                    <option value="f1">F1</option>
-                                    <option value="f2">F2</option>
-                                    <option value="f3">F3</option>
-                                    <option value="f4">F4</option>
-                                    <option value="f5">F5</option>
-                                    <option value="f6">F6</option>
-                                    <option value="f7">F7</option>
-                                    <option value="f8">F8</option>
-                                    <option value="f9">F9</option>
-                                    <option value="f10">F10</option>
-                                    <option value="f11">F11</option>
-                                    <option value="f12">F12</option>
+                                    <optgroup label="Navigation">
+                                        <option value="tab">Tab</option>
+                                        <option value="enter">Enter</option>
+                                        <option value="escape">Escape</option>
+                                        <option value="space">Space</option>
+                                        <option value="backspace">Backspace</option>
+                                        <option value="delete">Delete</option>
+                                    </optgroup>
+                                    <optgroup label="Arrow Keys">
+                                        <option value="up">Up</option>
+                                        <option value="down">Down</option>
+                                        <option value="left">Left</option>
+                                        <option value="right">Right</option>
+                                    </optgroup>
+                                    <optgroup label="Letters">
+                                        <option value="a">A</option>
+                                        <option value="b">B</option>
+                                        <option value="c">C</option>
+                                        <option value="d">D</option>
+                                        <option value="e">E</option>
+                                        <option value="f">F</option>
+                                        <option value="g">G</option>
+                                        <option value="h">H</option>
+                                        <option value="i">I</option>
+                                        <option value="j">J</option>
+                                        <option value="k">K</option>
+                                        <option value="l">L</option>
+                                        <option value="m">M</option>
+                                        <option value="n">N</option>
+                                        <option value="o">O</option>
+                                        <option value="p">P</option>
+                                        <option value="q">Q</option>
+                                        <option value="r">R</option>
+                                        <option value="s">S</option>
+                                        <option value="t">T</option>
+                                        <option value="u">U</option>
+                                        <option value="v">V</option>
+                                        <option value="w">W</option>
+                                        <option value="x">X</option>
+                                        <option value="y">Y</option>
+                                        <option value="z">Z</option>
+                                    </optgroup>
+                                    <optgroup label="Numbers">
+                                        <option value="0">0</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                        <option value="6">6</option>
+                                        <option value="7">7</option>
+                                        <option value="8">8</option>
+                                        <option value="9">9</option>
+                                    </optgroup>
+                                    <optgroup label="Function Keys">
+                                        <option value="f1">F1</option>
+                                        <option value="f2">F2</option>
+                                        <option value="f3">F3</option>
+                                        <option value="f4">F4</option>
+                                        <option value="f5">F5</option>
+                                        <option value="f6">F6</option>
+                                        <option value="f7">F7</option>
+                                        <option value="f8">F8</option>
+                                        <option value="f9">F9</option>
+                                        <option value="f10">F10</option>
+                                        <option value="f11">F11</option>
+                                        <option value="f12">F12</option>
+                                    </optgroup>
+                                    <optgroup label="Other">
+                                        <option value="home">Home</option>
+                                        <option value="end">End</option>
+                                        <option value="pageup">Page Up</option>
+                                        <option value="pagedown">Page Down</option>
+                                        <option value="insert">Insert</option>
+                                        <option value="printscreen">Print Screen</option>
+                                        <option value="capslock">Caps Lock</option>
+                                        <option value="numlock">Num Lock</option>
+                                    </optgroup>
                                 </select>
                             </div>
                             <button class="btn-small add-key-btn" type="button">+ Add Key</button>
@@ -283,6 +339,87 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Mouse Click -->
+                    <div class="toolbox-item" data-action="click">
+                        <div class="item-header">
+                            <span class="item-icon">&#128433;</span>
+                            <span class="item-title">Mouse Click</span>
+                        </div>
+                        <div class="item-fields">
+                            <div class="field-row">
+                                <label>Button:</label>
+                                <select class="field-select" data-field="button" style="width: auto; min-width: 80px;">
+                                    <option value="left">Left</option>
+                                    <option value="right">Right</option>
+                                    <option value="middle">Middle</option>
+                                </select>
+                                <label>Clicks:</label>
+                                <select class="field-select" data-field="clicks" style="width: auto; min-width: 60px;">
+                                    <option value="1">1</option>
+                                    <option value="2">2 (Double)</option>
+                                    <option value="3">3 (Triple)</option>
+                                </select>
+                            </div>
+                            <div class="field-row">
+                                <label class="checkbox-inline">
+                                    <input type="checkbox" data-field="use_coords" class="coords-toggle">
+                                    Click at coordinates:
+                                </label>
+                            </div>
+                            <div class="field-row coords-fields" style="display: none;">
+                                <label>X:</label>
+                                <input type="number" class="field-number" value="0" min="0" data-field="x">
+                                <label>Y:</label>
+                                <input type="number" class="field-number" value="0" min="0" data-field="y">
+                                <button type="button" class="btn-small pick-coords-btn" title="Pick from screen">Pick</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Move Mouse -->
+                    <div class="toolbox-item" data-action="move_mouse">
+                        <div class="item-header">
+                            <span class="item-icon">&#10146;</span>
+                            <span class="item-title">Move Mouse</span>
+                        </div>
+                        <div class="item-fields">
+                            <div class="field-row">
+                                <label>X:</label>
+                                <input type="number" class="field-number" value="0" min="0" data-field="x">
+                                <label>Y:</label>
+                                <input type="number" class="field-number" value="0" min="0" data-field="y">
+                            </div>
+                            <div class="field-row">
+                                <label>Duration:</label>
+                                <input type="number" class="field-number" value="0" min="0" max="10" step="0.1" data-field="duration">
+                                <span class="unit">sec</span>
+                                <button type="button" class="btn-small pick-coords-btn" title="Pick from screen">Pick</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Repeat Block -->
+                    <div class="toolbox-item repeat-block-item" data-action="repeat">
+                        <div class="item-header">
+                            <span class="item-icon">&#128257;</span>
+                            <span class="item-title">Repeat Block</span>
+                        </div>
+                        <div class="item-fields">
+                            <div class="field-row">
+                                <label>Times:</label>
+                                <input type="number" class="field-number" value="1" min="1" max="100" data-field="times">
+                            </div>
+                            <div class="field-row">
+                                <label>Delay:</label>
+                                <input type="number" class="field-number" value="0" min="0" max="10" step="0.05" data-field="delay">
+                                <span class="unit">sec</span>
+                            </div>
+                            <div class="repeat-dropzone" data-field="children">
+                                <div class="repeat-empty">Drop actions here</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </aside>
 
@@ -291,6 +428,26 @@
                 <h2>Sequence</h2>
                 <p class="panel-hint">Drag, drop, and reorder your automation steps</p>
                 
+                <!-- Tab Bar -->
+                <div class="sequence-tabs">
+                    <button class="sequence-tab" data-tab="startup">
+                        &#128640; Startup (Once)
+                    </button>
+                    <button class="sequence-tab active" data-tab="main">
+                        &#128257; Main Loop
+                    </button>
+                </div>
+                
+                <!-- Startup Sequence Dropzone -->
+                <div class="sequence-dropzone" id="startupSequence" style="display: none;">
+                    <div class="empty-sequence" id="emptyStartup">
+                        <div class="empty-icon">&#128640;</div>
+                        <p>Drag items here for one-time startup actions</p>
+                        <p class="empty-hint">These run once before the main loop begins</p>
+                    </div>
+                </div>
+                
+                <!-- Main Sequence Dropzone -->
                 <div class="sequence-dropzone" id="sequence">
                     <div class="empty-sequence" id="emptySequence">
                         <div class="empty-icon">&#128203;</div>
@@ -315,7 +472,8 @@
             <div class="modal-body">
                 <div class="confirm-details">
                     <p><strong>Target:</strong> <span id="confirmTarget">-</span></p>
-                    <p><strong>Steps:</strong> <span id="confirmSteps">-</span></p>
+                    <p><strong>Startup Steps:</strong> <span id="confirmStartupSteps">-</span></p>
+                    <p><strong>Loop Steps:</strong> <span id="confirmSteps">-</span></p>
                     <p><strong>Loops:</strong> <span id="confirmLoops">-</span></p>
                     <p><strong>Start Delay:</strong> <span id="confirmDelay">-</span> seconds</p>
                 </div>
@@ -411,6 +569,49 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" id="deleteCancel">Cancel</button>
                 <button class="btn btn-danger" id="deleteConfirm">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear Sequence Confirmation Modal -->
+    <div class="modal-overlay" id="clearModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Clear Sequence?</h3>
+            </div>
+            <div class="modal-body">
+                <p>This will remove all items from the sequence.</p>
+                <p>This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="clearCancel">Cancel</button>
+                <button class="btn btn-danger" id="clearConfirm">
+                    <span class="btn-icon">&#128465;</span> Clear All
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Countdown/Execution Overlay -->
+    <div class="execution-overlay" id="executionOverlay">
+        <div class="execution-content">
+            <div class="countdown-display" id="countdownDisplay">
+                <div class="countdown-label">Starting in...</div>
+                <div class="countdown-number" id="countdownNumber">3</div>
+                <div class="countdown-hint">Move mouse to top-left corner to stop</div>
+            </div>
+            <div class="execution-progress" id="executionProgress" style="display: none;">
+                <div class="progress-icon">&#9658;</div>
+                <div class="progress-label">Running sequence...</div>
+                <div class="progress-details">
+                    <span>Loop <span id="currentLoop">1</span> of <span id="totalLoops">1</span></span>
+                    <span class="progress-sep">|</span>
+                    <span>Step <span id="currentStep">1</span> of <span id="totalSteps">1</span></span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div class="progress-hint">Move mouse to top-left corner to stop</div>
             </div>
         </div>
     </div>
