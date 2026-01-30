@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoKey Web - Keyboard Automation</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- SortableJS via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1>AutoKey Web</h1>
+            <p class="subtitle">Visual Keyboard Automation Builder</p>
+        </header>
+
+        <!-- Saved Patterns Section (Collapsible) -->
+        <section class="patterns-section">
+            <div class="patterns-header" id="patternsToggle">
+                <h2>Saved Patterns (<span id="patternCount">0</span>)</h2>
+                <button class="toggle-btn" id="togglePatternsBtn">
+                    <span class="toggle-icon">&#9660;</span>
+                </button>
+            </div>
+            <div class="patterns-content" id="patternsContent">
+                <div class="patterns-grid" id="patternsGrid">
+                    <!-- Pattern cards will be populated here -->
+                    <div class="empty-patterns" id="emptyPatterns">
+                        <p>No saved patterns yet. Create and save your first pattern!</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Target Application Section -->
+        <section class="target-section">
+            <h2>Target Application</h2>
+            <div class="target-options">
+                <label class="radio-option">
+                    <input type="radio" name="targetMode" value="auto" id="targetModeAuto">
+                    <span>Auto-focus window:</span>
+                </label>
+                <div class="window-selector">
+                    <select id="windowSelect" disabled>
+                        <option value="">Select a window...</option>
+                    </select>
+                    <button class="icon-btn" id="refreshWindowsBtn" title="Refresh window list">
+                        &#x21bb;
+                    </button>
+                </div>
+                <label class="radio-option">
+                    <input type="radio" name="targetMode" value="manual" id="targetModeManual" checked>
+                    <span>Manual mode (switch apps during start delay)</span>
+                </label>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section class="settings-section">
+            <h2>Settings</h2>
+            <div class="settings-row">
+                <div class="setting-group">
+                    <label for="loopCount">Loop Count:</label>
+                    <input type="number" id="loopCount" value="1" min="1" max="1000">
+                </div>
+                <div class="setting-group">
+                    <label for="startDelay">Start Delay:</label>
+                    <input type="number" id="startDelay" value="3" min="0" max="60">
+                    <span class="unit">seconds</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Action Buttons -->
+        <section class="actions-section">
+            <button class="btn btn-primary" id="runBtn">
+                <span class="btn-icon">&#9658;</span> Run Sequence
+            </button>
+            <button class="btn btn-secondary" id="savePatternBtn">
+                <span class="btn-icon">&#128190;</span> Save Pattern
+            </button>
+            <button class="btn btn-secondary" id="loadJsonBtn">
+                <span class="btn-icon">&#128194;</span> Load JSON
+            </button>
+            <button class="btn btn-secondary" id="exportJsonBtn">
+                <span class="btn-icon">&#128228;</span> Export JSON
+            </button>
+            <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
+        </section>
+
+        <!-- Main Content: Toolbox and Sequence -->
+        <main class="main-content">
+            <!-- Toolbox Panel -->
+            <aside class="toolbox-panel">
+                <h2>Toolbox</h2>
+                <p class="panel-hint">Drag items to the sequence</p>
+                
+                <div class="toolbox-items" id="toolbox">
+                    <!-- Type Text -->
+                    <div class="toolbox-item" data-action="type">
+                        <div class="item-header">
+                            <span class="item-icon">&#9000;</span>
+                            <span class="item-title">Type Text</span>
+                        </div>
+                        <div class="item-fields">
+                            <input type="text" class="field-text" placeholder="Enter text... (use {i} for loop #)" data-field="value">
+                            <div class="field-row">
+                                <label>Speed:</label>
+                                <input type="number" class="field-number" value="0" min="0" max="1" step="0.01" data-field="interval">
+                                <span class="unit">sec</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Type Number Range -->
+                    <div class="toolbox-item" data-action="type_range">
+                        <div class="item-header">
+                            <span class="item-icon">&#128290;</span>
+                            <span class="item-title">Type Number Range</span>
+                        </div>
+                        <div class="item-fields">
+                            <div class="field-row">
+                                <label>From:</label>
+                                <input type="number" class="field-number" value="1" data-field="start">
+                                <label>To:</label>
+                                <input type="number" class="field-number" value="10" data-field="end">
+                            </div>
+                            <div class="field-row">
+                                <label>Speed:</label>
+                                <input type="number" class="field-number" value="0" min="0" max="1" step="0.01" data-field="interval">
+                                <span class="unit">sec</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Press Key -->
+                    <div class="toolbox-item" data-action="key">
+                        <div class="item-header">
+                            <span class="item-icon">&#127929;</span>
+                            <span class="item-title">Press Key</span>
+                        </div>
+                        <div class="item-fields">
+                            <select class="field-select" data-field="value">
+                                <option value="">Select key...</option>
+                                <optgroup label="Navigation">
+                                    <option value="tab">Tab</option>
+                                    <option value="enter">Enter</option>
+                                    <option value="escape">Escape</option>
+                                    <option value="space">Space</option>
+                                    <option value="backspace">Backspace</option>
+                                    <option value="delete">Delete</option>
+                                </optgroup>
+                                <optgroup label="Arrow Keys">
+                                    <option value="up">Up</option>
+                                    <option value="down">Down</option>
+                                    <option value="left">Left</option>
+                                    <option value="right">Right</option>
+                                </optgroup>
+                                <optgroup label="Function Keys">
+                                    <option value="f1">F1</option>
+                                    <option value="f2">F2</option>
+                                    <option value="f3">F3</option>
+                                    <option value="f4">F4</option>
+                                    <option value="f5">F5</option>
+                                    <option value="f6">F6</option>
+                                    <option value="f7">F7</option>
+                                    <option value="f8">F8</option>
+                                    <option value="f9">F9</option>
+                                    <option value="f10">F10</option>
+                                    <option value="f11">F11</option>
+                                    <option value="f12">F12</option>
+                                </optgroup>
+                                <optgroup label="Modifiers">
+                                    <option value="ctrl">Ctrl</option>
+                                    <option value="alt">Alt</option>
+                                    <option value="shift">Shift</option>
+                                    <option value="win">Win</option>
+                                </optgroup>
+                                <optgroup label="Other">
+                                    <option value="home">Home</option>
+                                    <option value="end">End</option>
+                                    <option value="pageup">Page Up</option>
+                                    <option value="pagedown">Page Down</option>
+                                    <option value="insert">Insert</option>
+                                    <option value="printscreen">Print Screen</option>
+                                    <option value="capslock">Caps Lock</option>
+                                    <option value="numlock">Num Lock</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Hotkey Combo -->
+                    <div class="toolbox-item" data-action="hotkey">
+                        <div class="item-header">
+                            <span class="item-icon">&#9889;</span>
+                            <span class="item-title">Hotkey Combo</span>
+                        </div>
+                        <div class="item-fields">
+                            <div class="hotkey-selects">
+                                <select class="field-select hotkey-select" data-field="key1">
+                                    <option value="ctrl">Ctrl</option>
+                                    <option value="alt">Alt</option>
+                                    <option value="shift">Shift</option>
+                                    <option value="win">Win</option>
+                                </select>
+                                <span class="hotkey-plus">+</span>
+                                <select class="field-select hotkey-select" data-field="key2">
+                                    <option value="">Select key...</option>
+                                    <option value="a">A</option>
+                                    <option value="b">B</option>
+                                    <option value="c">C</option>
+                                    <option value="d">D</option>
+                                    <option value="e">E</option>
+                                    <option value="f">F</option>
+                                    <option value="g">G</option>
+                                    <option value="h">H</option>
+                                    <option value="i">I</option>
+                                    <option value="j">J</option>
+                                    <option value="k">K</option>
+                                    <option value="l">L</option>
+                                    <option value="m">M</option>
+                                    <option value="n">N</option>
+                                    <option value="o">O</option>
+                                    <option value="p">P</option>
+                                    <option value="q">Q</option>
+                                    <option value="r">R</option>
+                                    <option value="s">S</option>
+                                    <option value="t">T</option>
+                                    <option value="u">U</option>
+                                    <option value="v">V</option>
+                                    <option value="w">W</option>
+                                    <option value="x">X</option>
+                                    <option value="y">Y</option>
+                                    <option value="z">Z</option>
+                                    <option value="0">0</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6">6</option>
+                                    <option value="7">7</option>
+                                    <option value="8">8</option>
+                                    <option value="9">9</option>
+                                    <option value="tab">Tab</option>
+                                    <option value="enter">Enter</option>
+                                    <option value="escape">Escape</option>
+                                    <option value="space">Space</option>
+                                    <option value="backspace">Backspace</option>
+                                    <option value="delete">Delete</option>
+                                    <option value="f1">F1</option>
+                                    <option value="f2">F2</option>
+                                    <option value="f3">F3</option>
+                                    <option value="f4">F4</option>
+                                    <option value="f5">F5</option>
+                                    <option value="f6">F6</option>
+                                    <option value="f7">F7</option>
+                                    <option value="f8">F8</option>
+                                    <option value="f9">F9</option>
+                                    <option value="f10">F10</option>
+                                    <option value="f11">F11</option>
+                                    <option value="f12">F12</option>
+                                </select>
+                            </div>
+                            <button class="btn-small add-key-btn" type="button">+ Add Key</button>
+                        </div>
+                    </div>
+
+                    <!-- Wait -->
+                    <div class="toolbox-item" data-action="wait">
+                        <div class="item-header">
+                            <span class="item-icon">&#9201;</span>
+                            <span class="item-title">Wait</span>
+                        </div>
+                        <div class="item-fields">
+                            <div class="field-row">
+                                <label>Duration:</label>
+                                <input type="number" class="field-number" value="0.5" min="0" max="60" step="0.1" data-field="value">
+                                <span class="unit">sec</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Sequence Panel -->
+            <section class="sequence-panel">
+                <h2>Sequence</h2>
+                <p class="panel-hint">Drag, drop, and reorder your automation steps</p>
+                
+                <div class="sequence-dropzone" id="sequence">
+                    <div class="empty-sequence" id="emptySequence">
+                        <div class="empty-icon">&#128203;</div>
+                        <p>Drag items here to build your sequence</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p><strong>Safety:</strong> Move your mouse to the top-left corner of the screen to emergency stop!</p>
+        </footer>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Confirm Execution</h3>
+            </div>
+            <div class="modal-body">
+                <div class="confirm-details">
+                    <p><strong>Target:</strong> <span id="confirmTarget">-</span></p>
+                    <p><strong>Steps:</strong> <span id="confirmSteps">-</span></p>
+                    <p><strong>Loops:</strong> <span id="confirmLoops">-</span></p>
+                    <p><strong>Start Delay:</strong> <span id="confirmDelay">-</span> seconds</p>
+                </div>
+                <div class="safety-warning">
+                    <span class="warning-icon">&#9889;</span>
+                    <p><strong>EMERGENCY STOP:</strong> Move mouse to top-left corner!</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="confirmCancel">Cancel</button>
+                <button class="btn btn-primary" id="confirmRun">
+                    <span class="btn-icon">&#9658;</span> Run Sequence
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Pattern Modal -->
+    <div class="modal-overlay" id="savePatternModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Save Pattern</h3>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="patternName">Pattern Name: *</label>
+                    <input type="text" id="patternName" placeholder="Enter pattern name...">
+                </div>
+                <div class="form-group">
+                    <label for="patternDescription">Description (optional):</label>
+                    <textarea id="patternDescription" rows="3" placeholder="Describe what this pattern does..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="includeSettings" checked>
+                        Include current settings (target, loops, delay)
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="savePatternCancel">Cancel</button>
+                <button class="btn btn-primary" id="savePatternConfirm">
+                    <span class="btn-icon">&#128190;</span> Save Pattern
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overwrite Confirmation Modal -->
+    <div class="modal-overlay" id="overwriteModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Pattern Exists</h3>
+            </div>
+            <div class="modal-body">
+                <p>A pattern named "<span id="overwritePatternName"></span>" already exists.</p>
+                <p>Do you want to overwrite it?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="overwriteCancel">Cancel</button>
+                <button class="btn btn-warning" id="overwriteConfirm">Overwrite</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unsaved Changes Modal -->
+    <div class="modal-overlay" id="unsavedModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Unsaved Changes</h3>
+            </div>
+            <div class="modal-body">
+                <p>Your current sequence has unsaved changes.</p>
+                <p>Loading a pattern will replace your current work.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="unsavedCancel">Cancel</button>
+                <button class="btn btn-warning" id="unsavedConfirm">Load Anyway</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Delete Pattern</h3>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete "<span id="deletePatternName"></span>"?</p>
+                <p>This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="deleteCancel">Cancel</button>
+                <button class="btn btn-danger" id="deleteConfirm">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <span class="toast-icon" id="toastIcon"></span>
+        <span class="toast-message" id="toastMessage"></span>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
