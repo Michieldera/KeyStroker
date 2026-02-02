@@ -1,0 +1,129 @@
+{
+  "name": "FillingChannels/Personality_KPGD3(Belpark_System2)",
+  "description": "",
+  "created_at": "2026-02-02T09:13:33.789129Z",
+  "updated_at": "2026-02-02T09:13:33.789129Z",
+  "target_window": "KPG-D3",
+  "target_mode": "auto",
+  "start_delay": 3,
+  "loop_count": 110,
+  "default_delay": 0.1,
+  "startup_sequence": [
+    {
+      "action": "click",
+      "button": "left",
+      "clicks": 1,
+      "x": 451,
+      "y": 298
+    }
+  ],
+  "sequence": [
+    {
+      "action": "key",
+      "value": "enter"
+    },
+    {
+      "action": "key",
+      "value": "backspace"
+    },
+    {
+      "action": "type_range",
+      "start": 1,
+      "end": 110,
+      "interval": 0.1
+    },
+    {
+      "action": "key",
+      "value": "tab"
+    },
+    {
+      "action": "type",
+      "value": "461,412500",
+      "interval": 0.1
+    },
+    {
+      "action": "key",
+      "value": "tab"
+    },
+    {
+      "action": "type",
+      "value": "451,412500",
+      "interval": 0.1
+    },
+    {
+      "action": "repeat",
+      "times": 5,
+      "delay": 0.1,
+      "children": [
+        {
+          "action": "key",
+          "value": "tab"
+        }
+      ]
+    },
+    {
+      "action": "repeat",
+      "times": 2,
+      "delay": 0.1,
+      "children": [
+        {
+          "action": "type",
+          "value": "123,0",
+          "interval": 0.1
+        },
+        {
+          "action": "key",
+          "value": "tab"
+        }
+      ]
+    },
+    {
+      "action": "repeat",
+      "times": 2,
+      "delay": 0.1,
+      "children": [
+        {
+          "action": "key",
+          "value": "tab"
+        }
+      ]
+    },
+    {
+      "action": "key",
+      "value": "backspace"
+    },
+    {
+      "action": "type",
+      "value": "123",
+      "interval": 0.1
+    },
+    {
+      "action": "key",
+      "value": "tab"
+    },
+    {
+      "action": "type",
+      "value": "123",
+      "interval": 0.1
+    },
+    {
+      "action": "type_range",
+      "start": 1,
+      "end": 110,
+      "interval": 0.1,
+      "use_padding": true,
+      "min_digits": 2
+    },
+    {
+      "action": "repeat",
+      "times": 5,
+      "delay": 0.1,
+      "children": [
+        {
+          "action": "key",
+          "value": "tab"
+        }
+      ]
+    }
+  ]
+}

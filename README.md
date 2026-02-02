@@ -20,13 +20,26 @@ A browser-based keyboard and mouse automation tool with a visual drag-and-drop i
 - **Target Window** - Auto-focus a specific application window or use manual mode
 - **Pattern Management** - Save, load, duplicate, and delete automation patterns
 - **JSON Import/Export** - Share patterns as JSON files
-- **Undo/Redo** - Full history support for sequence editing
+- **Undo/Redo** - Full history support for sequence editing (50-state history)
 - **Dark Mode** - Toggle between light and dark themes
+- **Real-time Progress** - Visual progress bar showing current step/loop during execution
+- **Pick Coordinates** - Capture mouse position with a 3-second countdown for click/move actions
+- **Default Delay Setting** - Apply a uniform delay to all sequence items with one click
 
 ### Safety
 - **Emergency Stop**: Move your mouse to the top-left corner of the screen to immediately abort execution (pyautogui failsafe)
 - **Start Delay**: Configurable countdown before execution begins
 - **Confirmation Modal**: Review settings before running
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+S` | Save Pattern |
+| `Ctrl+Enter` | Run Sequence |
+| `Ctrl+Z` | Undo |
+| `Ctrl+Y` / `Ctrl+Shift+Z` | Redo |
+| `Escape` | Close Modal |
 
 ## Installation
 
@@ -224,9 +237,14 @@ KeyStroker/
 
 ## Dependencies
 
+### Backend (Python)
 - **Flask** - Web framework
 - **pyautogui** - Keyboard/mouse automation
 - **PyGetWindow** - Window management (focus, list windows)
+
+### Frontend (CDN)
+- **SortableJS** - Drag-and-drop functionality
+- **Lucide Icons** - UI iconography
 
 ## Troubleshooting
 
