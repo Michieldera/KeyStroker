@@ -13,6 +13,10 @@ import queue
 import threading
 
 import pyautogui
+import requests
+
+# Import version info
+from version import VERSION, APP_NAME, GITHUB_REPO, GITHUB_API_URL, GITHUB_RELEASES_URL
 
 # Import cross-platform window manager
 from window_manager import get_all_windows, activate_window, window_exists, get_platform
@@ -23,6 +27,7 @@ pyautogui.FAILSAFE = True
 # Import pyperclip for clipboard-based typing (better keyboard layout support)
 try:
     import pyperclip
+
     PYPERCLIP_AVAILABLE = True
 except ImportError:
     PYPERCLIP_AVAILABLE = False
@@ -51,16 +56,16 @@ def type_text_safe(text, interval=0):
     Type text using clipboard paste method for non-QWERTY keyboard compatibility.
     This works correctly with AZERTY, QWERTZ, and other keyboard layouts.
     Falls back to direct typing if clipboard method fails.
-    
+
     Args:
         text: The text to type
         interval: Delay between characters (only used in fallback mode)
     """
     if not text:
         return
-    
+
     platform = get_platform()
-    
+
     # Try clipboard method first (works with any keyboard layout)
     if PYPERCLIP_AVAILABLE:
         try:
@@ -69,31 +74,31 @@ def type_text_safe(text, interval=0):
                 old_clipboard = pyperclip.paste()
             except Exception:
                 old_clipboard = ""
-            
+
             # Copy text to clipboard
             pyperclip.copy(text)
             time.sleep(0.05)  # Small delay for clipboard to update
-            
+
             # Paste using keyboard shortcut
-            if platform == 'macos':
-                pyautogui.hotkey('command', 'v')
+            if platform == "macos":
+                pyautogui.hotkey("command", "v")
             else:
-                pyautogui.hotkey('ctrl', 'v')
-            
+                pyautogui.hotkey("ctrl", "v")
+
             time.sleep(0.05)  # Small delay for paste to complete
-            
+
             # Restore original clipboard content
             try:
                 if old_clipboard:
                     pyperclip.copy(old_clipboard)
             except Exception:
                 pass
-            
+
             return  # Success - exit function
-            
+
         except Exception:
             pass  # Fall through to direct typing
-    
+
     # Fallback: direct typing (may not work correctly with non-QWERTY keyboards)
     pyautogui.write(text, interval=interval)
 
@@ -154,11 +159,13 @@ def get_windows_list():
     try:
         windows = get_all_windows()
         platform = get_platform()
-        return jsonify({
-            "windows": windows,
-            "platform": platform,
-            "note": "Application names" if platform == "macos" else "Window titles"
-        })
+        return jsonify(
+            {
+                "windows": windows,
+                "platform": platform,
+                "note": "Application names" if platform == "macos" else "Window titles",
+            }
+        )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -327,7 +334,9 @@ def run_sequence():
                     if not success:
                         execution_state["running"] = False
                         return jsonify(
-                            {"error": f"Failed to activate '{target_window}'. Try selecting it manually."}
+                            {
+                                "error": f"Failed to activate '{target_window}'. Try selecting it manually."
+                            }
                         ), 400
                     time.sleep(0.5)  # Brief pause for window to come to front
                 else:
@@ -600,6 +609,105 @@ def duplicate_pattern(name):
         )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# =============================================================================
+# Version and Update Endpoints
+# =============================================================================
+
+
+@app.route("/api/version", methods=["GET"])
+def get_version():
+    """Return current application version."""
+    return jsonify(
+        {"version": VERSION, "app_name": APP_NAME, "github_repo": GITHUB_REPO}
+    )
+
+
+@app.route("/api/check-update", methods=["GET"])
+def check_update():
+    """Check GitHub for latest release version."""
+    try:
+        # Query GitHub API for latest release
+        headers = {
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": f"{APP_NAME}/{VERSION}",
+        }
+
+        response = requests.get(GITHUB_API_URL, headers=headers, timeout=10)
+
+        if response.status_code == 404:
+            # No releases yet
+            return jsonify(
+                {
+                    "update_available": False,
+                    "current_version": VERSION,
+                    "message": "No releases found yet.",
+                }
+            )
+
+        response.raise_for_status()
+        release_data = response.json()
+
+        latest_version = release_data.get("tag_name", "").lstrip("v")
+        release_name = release_data.get("name", "")
+        release_notes = release_data.get("body", "")
+        html_url = release_data.get("html_url", GITHUB_RELEASES_URL)
+        published_at = release_data.get("published_at", "")
+
+        # Find download URL for Windows executable
+        download_url = None
+        assets = release_data.get("assets", [])
+        for asset in assets:
+            asset_name = asset.get("name", "").lower()
+            if asset_name.endswith(".exe"):
+                download_url = asset.get("browser_download_url")
+                break
+
+        # Compare versions (simple string comparison works for semantic versioning)
+        def parse_version(v):
+            """Parse version string into tuple of integers."""
+            try:
+                return tuple(int(x) for x in v.split("."))
+            except (ValueError, AttributeError):
+                return (0, 0, 0)
+
+        current_ver = parse_version(VERSION)
+        latest_ver = parse_version(latest_version)
+
+        update_available = latest_ver > current_ver
+
+        return jsonify(
+            {
+                "update_available": update_available,
+                "current_version": VERSION,
+                "latest_version": latest_version,
+                "release_name": release_name,
+                "release_notes": release_notes,
+                "release_url": html_url,
+                "download_url": download_url,
+                "published_at": published_at,
+            }
+        )
+
+    except requests.exceptions.Timeout:
+        return jsonify(
+            {
+                "error": "Request timed out. Please try again.",
+                "current_version": VERSION,
+            }
+        ), 504
+    except requests.exceptions.RequestException as e:
+        return jsonify(
+            {
+                "error": f"Failed to check for updates: {str(e)}",
+                "current_version": VERSION,
+            }
+        ), 500
+    except Exception as e:
+        return jsonify(
+            {"error": f"Unexpected error: {str(e)}", "current_version": VERSION}
+        ), 500
 
 
 if __name__ == "__main__":

@@ -21,10 +21,18 @@
                     <h1>KeyStroker</h1>
                     <p class="subtitle">Visual Keyboard Automation Builder</p>
                 </div>
-                <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
-                    <span class="theme-icon-light">&#9788;</span>
-                    <span class="theme-icon-dark">&#9790;</span>
-                </button>
+                <div class="header-actions">
+                    <div class="version-info">
+                        <span class="version-label" id="versionDisplay">v1.0.0</span>
+                        <button class="update-check-btn" id="checkUpdateBtn" title="Check for updates">
+                            &#x21bb; Updates
+                        </button>
+                    </div>
+                    <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+                        <span class="theme-icon-light">&#9788;</span>
+                        <span class="theme-icon-dark">&#9790;</span>
+                    </button>
+                </div>
             </div>
         </header>
 
@@ -616,6 +624,32 @@
                     <div class="progress-bar" id="progressBar"></div>
                 </div>
                 <div class="progress-hint">Move mouse to top-left corner to stop</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Available Modal -->
+    <div class="modal-overlay" id="updateModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>&#127881; Update Available!</h3>
+            </div>
+            <div class="modal-body">
+                <div class="update-info">
+                    <p class="update-version-comparison">
+                        <span class="current-version">Current: <strong id="updateCurrentVersion">v1.0.0</strong></span>
+                        <span class="version-arrow">&#8594;</span>
+                        <span class="new-version">New: <strong id="updateNewVersion">v1.1.0</strong></span>
+                    </p>
+                    <p class="release-name" id="updateReleaseName"></p>
+                    <div class="release-notes" id="updateReleaseNotes"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="updateLater">Later</button>
+                <a href="#" class="btn btn-primary" id="updateDownloadBtn" target="_blank">
+                    &#128229; Download Update
+                </a>
             </div>
         </div>
     </div>

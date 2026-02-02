@@ -1273,4 +1273,132 @@ input[type="number"] {
     .pattern-card {
         width: 100%;
     }
+    
+    .header-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .version-info {
+        flex-direction: column;
+        gap: 4px;
+    }
+}
+
+/* ============================================================================
+   Header Actions & Version Info
+   ============================================================================ */
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.version-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.version-label {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: var(--primary-light);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+}
+
+.update-check-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.update-check-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: var(--primary-light);
+}
+
+.update-check-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ============================================================================
+   Update Modal Styles
+   ============================================================================ */
+
+.update-info {
+    text-align: center;
+}
+
+.update-version-comparison {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+}
+
+.current-version {
+    color: var(--text-muted);
+}
+
+.version-arrow {
+    color: var(--success-color);
+    font-size: 1.5rem;
+}
+
+.new-version {
+    color: var(--success-color);
+}
+
+.new-version strong {
+    font-size: 1.2rem;
+}
+
+.release-name {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 12px;
+}
+
+.release-notes {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    max-height: 200px;
+    overflow-y: auto;
+    text-align: left;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.release-notes strong {
+    color: var(--text-color);
+    display: block;
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+
+.release-notes:first-child strong {
+    margin-top: 0;
+}
+
+#updateDownloadBtn {
+    text-decoration: none;
 }

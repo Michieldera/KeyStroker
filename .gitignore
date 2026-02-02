@@ -28,7 +28,8 @@ MANIFEST
 
 # PyInstaller
 *.manifest
-*.spec
+# Note: Keep KeyStroker.spec for reproducible builds
+# *.spec
 
 # Installer logs
 pip-log.txt
@@ -133,3 +134,12 @@ Thumbs.db
 # Secrets / credentials
 *.pem
 *.key
+
+# PyInstaller build artifacts (keep spec file)
+build/
+dist/
+*.spec.bak
+file_version_info.txt
+
+# Don't ignore the custom spec file
+!KeyStroker.spec

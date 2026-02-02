@@ -112,7 +112,18 @@ const elements = {
     totalLoops: document.getElementById('totalLoops'),
     currentStep: document.getElementById('currentStep'),
     totalSteps: document.getElementById('totalSteps'),
-    progressBar: document.getElementById('progressBar')
+    progressBar: document.getElementById('progressBar'),
+    
+    // Version and Update
+    versionDisplay: document.getElementById('versionDisplay'),
+    checkUpdateBtn: document.getElementById('checkUpdateBtn'),
+    updateModal: document.getElementById('updateModal'),
+    updateCurrentVersion: document.getElementById('updateCurrentVersion'),
+    updateNewVersion: document.getElementById('updateNewVersion'),
+    updateReleaseName: document.getElementById('updateReleaseName'),
+    updateReleaseNotes: document.getElementById('updateReleaseNotes'),
+    updateLater: document.getElementById('updateLater'),
+    updateDownloadBtn: document.getElementById('updateDownloadBtn')
 };
 
 // ============================================================================
@@ -1474,6 +1485,95 @@ async function runSequence() {
 }
 
 // ============================================================================
+// Version and Update Functions
+// ============================================================================
+
+let currentAppVersion = '1.0.0';
+
+async function loadVersionInfo() {
+    try {
+        const response = await fetch('/api/version');
+        const data = await response.json();
+        
+        if (data.version) {
+            currentAppVersion = data.version;
+            if (elements.versionDisplay) {
+                elements.versionDisplay.textContent = `v${data.version}`;
+            }
+        }
+    } catch (error) {
+        console.log('Could not load version info:', error);
+    }
+}
+
+async function checkForUpdates(showUpToDateMessage = true) {
+    if (elements.checkUpdateBtn) {
+        elements.checkUpdateBtn.disabled = true;
+        elements.checkUpdateBtn.textContent = 'Checking...';
+    }
+    
+    try {
+        const response = await fetch('/api/check-update');
+        const data = await response.json();
+        
+        if (data.error) {
+            showToast(data.error, 'error');
+            return;
+        }
+        
+        if (data.update_available) {
+            // Show update modal
+            showUpdateModal(data);
+        } else if (showUpToDateMessage) {
+            showToast(`You're running the latest version (v${data.current_version})`, 'success');
+        }
+        
+    } catch (error) {
+        showToast('Failed to check for updates', 'error');
+        console.error('Update check error:', error);
+    } finally {
+        if (elements.checkUpdateBtn) {
+            elements.checkUpdateBtn.disabled = false;
+            elements.checkUpdateBtn.innerHTML = '&#x21bb; Updates';
+        }
+    }
+}
+
+function showUpdateModal(updateData) {
+    if (elements.updateCurrentVersion) {
+        elements.updateCurrentVersion.textContent = `v${updateData.current_version}`;
+    }
+    if (elements.updateNewVersion) {
+        elements.updateNewVersion.textContent = `v${updateData.latest_version}`;
+    }
+    if (elements.updateReleaseName && updateData.release_name) {
+        elements.updateReleaseName.textContent = updateData.release_name;
+        elements.updateReleaseName.style.display = 'block';
+    } else if (elements.updateReleaseName) {
+        elements.updateReleaseName.style.display = 'none';
+    }
+    if (elements.updateReleaseNotes) {
+        if (updateData.release_notes) {
+            // Convert markdown-style notes to simple HTML
+            const notes = updateData.release_notes
+                .replace(/^### (.+)$/gm, '<strong>$1</strong>')
+                .replace(/^- (.+)$/gm, '&bull; $1')
+                .replace(/\n/g, '<br>');
+            elements.updateReleaseNotes.innerHTML = notes;
+            elements.updateReleaseNotes.style.display = 'block';
+        } else {
+            elements.updateReleaseNotes.style.display = 'none';
+        }
+    }
+    if (elements.updateDownloadBtn) {
+        const downloadUrl = updateData.download_url || updateData.release_url;
+        elements.updateDownloadBtn.href = downloadUrl;
+    }
+    
+    showModal(elements.updateModal);
+}
+
+// ============================================================================
 // Event Listeners
 // ============================================================================
 
@@ -1608,6 +1708,14 @@ function initEventListeners() {
         showToast('All sequences cleared', 'success');
     };
     
+    // Update modal
+    if (elements.checkUpdateBtn) {
+        elements.checkUpdateBtn.onclick = () => checkForUpdates(true);
+    }
+    if (elements.updateLater) {
+        elements.updateLater.onclick = () => hideModal(elements.updateModal);
+    }
+    
     // Close modals on backdrop click
     document.querySelectorAll('.modal-overlay').forEach(modal => {
         modal.onclick = (e) => {
@@ -1717,12 +1825,15 @@ async function init() {
     // Load initial data
     await loadPatternsList();
     
+    // Load version info
+    await loadVersionInfo();
+    
     // Initial state
     updateEmptyState();
     updateStartupEmptyState();
     updateUndoRedoButtons();
     
-    console.log('AutoKey Web initialized');
+    console.log('KeyStroker initialized');
 }
 
 // Start when DOM is ready
