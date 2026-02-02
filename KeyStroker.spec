@@ -26,8 +26,8 @@ a = Analysis(
         ('static', 'static'),
         # Include assets (icons)
         ('assets', 'assets'),
-        # Include patterns directory (empty by default, but structure needed)
-        ('patterns', 'patterns'),
+        # Note: patterns directory is NOT included - app creates it at runtime
+        # This prevents bundling user configs into the release
     ],
     hiddenimports=[
         # System tray dependencies

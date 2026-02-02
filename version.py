@@ -2,7 +2,7 @@
 Version and application metadata for KeyStroker.
 """
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 APP_NAME = "KeyStroker"
 APP_DESCRIPTION = "Visual Keyboard Automation Builder"
 GITHUB_REPO = "Michieldera/KeyStroker"
